@@ -1,7 +1,4 @@
-"""Augmented Attention Convolution Block.
-
-TODO: need to change this so it is compatible with the protein structure prediction code
-"""
+"""Augmented Attention Convolution Block."""
 
 import tensorflow as tf
 from tensorflow.keras import layers
@@ -21,6 +18,7 @@ class AAConv(layers.Layer):
         OUPUT: (B, C_OUT, H, W)
 
     NOTE: the format must be: "NCHW"
+    NOTE: relative positional encoding has not yet been implemented
 
     Attributes:
         channels_out (int): output channels of this block
@@ -104,6 +102,15 @@ class AAConv(layers.Layer):
             dilation_rate=self.dilation,
             name='AA_Atten_Conv')
 
+        if self.relative_pos:
+            raise NotImplementedError
+            self.rel_embed_w = self.add_weight(
+                # shape=(2 * , n_in, self.n_out),
+                initializer=tf.random_normal_initializer(self.dkh ** -0.5),
+                trainable=True,
+                regularizer=self.regularizer,
+                name='AA_rel_embed_w')
+
 
     def _split_heads_2d(self, inputs):
         """Split channels into multiple heads.
@@ -158,6 +165,15 @@ class AAConv(layers.Layer):
         return result
 
 
+    def _relative_logits(self, inputs, height, width):
+        """Compute relative logits
+        """
+
+        # relative logits in width dimension
+        raise NotImplementedError(
+            "Relative positional encoding has not yet been implemented.")
+
+            
     def _self_attention_2d(self, inputs):
         """Apply self 2d self attention to input.
 
@@ -201,7 +217,10 @@ class AAConv(layers.Layer):
             flatten_hw(k, self.dkh),
             transpose_b=True)
 
-        # TODO: include relative positional encoding here
+        if self.relative_pos:
+            rel_logits_h, rel_logits_w = self._relative_logits(q, H, W)
+            logits += rel_logits_h
+            logits += rel_logits_w
 
         weights = tf.math.softmax(logits)
 
