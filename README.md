@@ -1,11 +1,51 @@
-# Attention Augmented Convolution Layer
-This repository replicates the Attention Augmented Convolution Layer, as described in (https://arxiv.org/pdf/1904.09925v4.pdf).
+# Convolution Variants
+This repository replicates various convolution layers from SOTA papers.
 
-![AA Convolution Digram](images/AA_conv_diagram.png)
+This repository currently includes:
+* Attention Augmented Convolution Layer
+* Mixed Depthwise Convolution Layer
+
+
+
+
+
+## Attention Augmented Convolution Layer
+
+![AA Convolution Diagram](images/AA_conv_diagram.png)
+
+For other implementations in:
+* Pytorch: [leaderj1001](https://github.com/leaderj1001/Attention-Augmented-Conv2d)
+* Keras: [titu1994](https://github.com/titu1994/keras-attention-augmented-convs)
+* TensorFlow 1.0: [gan3sh500](https://github.com/gan3sh500/attention-augmented-conv) 
+
+
+### Notes
+
+* This implementation does not yet include relative positional encodings.
+
+
+
+
+
+
+## Mixed Depthwise Convolution Layer
+
+![Mix Conv Diagram](images/MixConv_diagram.png)
+
+For other implementations in:
+* TensorFlow 1.0: [tensorflow](https://github.com/tensorflow/tpu/tree/master/models/official/mnasnet/mixnet)
+
+### Notes
+
+* This implementation combines depthwise convolution with pointwise convolution. The original implementation only used depthwise convolutions.
+
+
+
+
 
 # Usage
 
-To use this layer:
+To use these layers:
 
 ```
 import tensorflow as tf
@@ -39,13 +79,14 @@ model.fit(x_train, y_train, epochs=5)
 ```
 
 
-# Notes:
+# General Notes:
 
 * This layer is only tested to work for input format: NCHW. Existing implementations (see Acknowledgements) using format NHWC.
 
-* This layer does not yet have relative positional encodings.
+* Test cases are located [here](https://github.com/JinLi711/Convolution_Variants/blob/master/Convolution_Variants/tests.py). 
 
-* Test cases are located [here](https://github.com/JinLi711/Attention-Augmented-Convolution/Attention-Augmented-Convolution/tests.py). 
+
+
 
 
 # Requirements
@@ -53,11 +94,11 @@ model.fit(x_train, y_train, epochs=5)
 * tensorflow 2.0.0 with GPU
 
 
+
+
+
 # Acknowledgements
 
-This work is based on the paper: Attention Augmented Convolutional Networks (https://arxiv.org/pdf/1904.09925v4.pdf).
+* Attention Augmented Convolutional Networks (https://arxiv.org/pdf/1904.09925v4.pdf)
+* Mixed Depthwise Convolution Layer (https://arxiv.org/pdf/1907.09595v2.pdf)
 
-For other implementations in:
-* Pytorch: [leaderj1001](https://github.com/leaderj1001/Attention-Augmented-Conv2d)
-* Keras: [titu1994](https://github.com/titu1994/keras-attention-augmented-convs)
-* TensorFlow 1.0: [gan3sh500](https://github.com/gan3sh500/attention-augmented-conv) 
