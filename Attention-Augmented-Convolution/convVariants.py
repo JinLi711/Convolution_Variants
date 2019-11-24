@@ -1,23 +1,148 @@
-"""Augmented Attention Convolution Block."""
+"""State of the art convolution layers.
+
+Includes:
+    Augmented Attention Convolution layer.
+    Mixed Depthwise Convolution layer.
+
+NOTE: the format for all layers must be: "NCHW"
+
+B: batch size
+C: channels
+H: height
+W: width
+Nh: number of heads
+"""
 
 import tensorflow as tf
 from tensorflow.keras import layers
 
 
-class AAConv(layers.Layer):
-    """Augmented attention block.
-
-    B: batch size
-    C: channels
-    H: height
-    W: width
-    Nh: number of heads
+class MixConv(layers.Layer):
+    """MixConv, a convolution layer with different convolution kernel sizes.
 
     Shapes:
         INPUT: (B, C_IN, H, W)
         OUPUT: (B, C_OUT, H, W)
 
-    NOTE: the format must be: "NCHW"
+    Attributes:
+        channels_out (int): total number of output channels
+        kernel_sizes (list): list of kernel sizes, one kernel size for each group
+        depthwise (bool): whether the convolution should be depthwise or not
+    """
+
+    def __init__(
+        self, 
+        channels_out,
+        kernel_sizes,
+        depthwise=True,
+        **kwargs):
+
+        super(MixConv, self).__init__()
+
+        self.channels_out = channels_out
+        self.kernel_sizes = kernel_sizes
+        self.depthwise = depthwise
+        self.kwargs = kwargs
+
+        self.num_groups = len(kernel_sizes)
+
+
+    def _split_channels(self, total_channels, num_groups):
+        """Split channels into multiple groups.
+
+        Each group will have approximately equal number of channels. 
+        The left over channels with be placed in the first group.
+
+        Args:
+            total_channels (int): number of filters for input or output
+            num_groups (int): number of groups to split the filters
+
+        Returns:
+            (list) list of filter size for each group
+        """
+
+        split = [total_channels // num_groups for _ in range(num_groups)]
+        split[0] += total_channels - sum(split)
+        return split
+
+
+    def build(self, input_shape):
+
+        in_channel = input_shape[1]
+
+        self.in_channels = self._split_channels(
+            in_channel, 
+            self.num_groups)
+
+        self.out_channels = self._split_channels(
+            self.channels_out, 
+            self.num_groups)
+
+        if self.depthwise:
+            self.depthwise_layers = []
+            self.pointwise_layers = []
+
+            for i, k_size in enumerate(self.kernel_sizes):
+
+                layer = tf.keras.layers.DepthwiseConv2D(
+                    kernel_size=k_size,
+                    padding='same',
+                    data_format='channels_first',
+                    depth_multiplier=1,
+                    **self.kwargs)
+                self.depthwise_layers.append(layer)
+
+                layer = tf.keras.layers.Conv2D(
+                    filters=self.out_channels[i],
+                    kernel_size=1,
+                    padding='same',
+                    data_format='channels_first',
+                    **self.kwargs)
+                self.pointwise_layers.append(layer)
+
+        else:
+            self.layers = []
+
+            for i, k_size in enumerate(self.kernel_sizes):
+
+                layer = tf.keras.layers.Conv2D(
+                    filters=self.out_channels[i],
+                    kernel_size=k_size,
+                    padding='same',
+                    data_format='channels_first',
+                    **self.kwargs)
+                self.layers.append(layer)
+
+
+    @tf.function
+    def call(self, inputs):
+        
+        x_splits = tf.split(
+            inputs, 
+            self.in_channels, 
+            1)
+
+        if self.depthwise:
+            x_outputs = [p(d(x)) for x, d, p in zip(
+                x_splits, 
+                self.depthwise_layers,
+                self.pointwise_layers)]
+        else:
+            x_outputs = [d(x) for x, d in zip(
+                x_splits, 
+                self.layers)]
+
+        result = tf.concat(x_outputs, 1)
+        return result
+
+
+class AAConv(layers.Layer):
+    """Augmented attention block.
+
+    Shapes:
+        INPUT: (B, C_IN, H, W)
+        OUPUT: (B, C_OUT, H, W)
+
     NOTE: relative positional encoding has not yet been implemented
 
     Attributes:
@@ -75,8 +200,6 @@ class AAConv(layers.Layer):
 
 
     def build(self, input_shapes):
-        """Initialize the weights of the convolution layers.
-        """
         
         self.conv = layers.Conv2D(
             self.channels_out - self.depth_v, 
@@ -241,6 +364,7 @@ class AAConv(layers.Layer):
         attn_out = tf.transpose(attn_out, [0, 3, 1, 2])
 
         return attn_out
+
 
     @tf.function
     def call(self, inputs):
