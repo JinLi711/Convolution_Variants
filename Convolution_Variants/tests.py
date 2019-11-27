@@ -130,20 +130,25 @@ class TestCustomConv(unittest.TestCase):
             test_accuracy.reset_states()
 
     
-    def MNIST_run2(self, layer, max_instances=1000, EPOCHS=2, repeats=1):
+    def MNIST_run2(self, layers, max_instances=1000, EPOCHS=2, repeats=1):
         """This doesn't work if output shapes are undetermined. """
 
         x_train, y_train, x_test, y_test = self.MNIST_load_data(
             max_instances,
             repeats)
 
-        model = tf.keras.models.Sequential([
-            layer,
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(10, activation='softmax')
-            ])
+        # baseline layer:
+        # Conv2D(32, 3, activation='relu')
+        
+        model = tf.keras.models.Sequential([])
+
+        for layer in layers:
+            model.add(layer)
+        model.add(tf.keras.layers.Flatten())
+        model.add(tf.keras.layers.Dense(128, activation='relu'))
+        model.add(tf.keras.layers.Dropout(0.2))
+        model.add(tf.keras.layers.Dense(10, activation='softmax'))
+
 
         model.compile(
             optimizer='adam',
@@ -244,19 +249,89 @@ class TestCustomConv(unittest.TestCase):
                 getShape(result),
                 (B, C_OUT, H, W))
 
-            kernel_sizes = [3, 5]
+            kernel_sizes = [(3, 3), (5, 5)]
             layer = convVariants.MixConv(
                 C_OUT, 
                 kernel_sizes,
-                depthwise=depthwise)
+                depthwise=depthwise,
+                activation='relu')
 
-            self.MNIST_run2(layer, repeats=3)
+            self.MNIST_run2(
+                [layer], 
+                EPOCHS=5, 
+                repeats=2, 
+                max_instances=600)
 
         check_depthwise(True)
         check_depthwise(False)
 
 
+    @unittest.skip('Correct.')
+    def test_ChannelGate(self):
+        H = 36
+        W = 54
+        C_IN = 49
+        B = 3
 
+        input_shape = (B, C_IN, H, W)
+
+        layer = convVariants.ChannelGate(C_IN, reduction_ratio=3)
+        
+        x = randomItem(input_shape)
+        result = layer(x)
+
+        self.assertEqual(
+            getShape(result),
+            input_shape)
+
+    @unittest.skip('Correct.')
+    def test_SpatialGate(self):
+        H = 36
+        W = 54
+        C_IN = 49
+        B = 3
+
+        input_shape = (B, C_IN, H, W)
+
+        layer = convVariants.SpatialGate()
+
+        x = randomItem(input_shape)
+        result = layer(x)
+
+        self.assertEqual(
+            getShape(result),
+            input_shape)
+
+    @unittest.skip('Correct.')
+    def test_CBAM(self):
+        H = 36
+        W = 54
+        C_IN = 49
+        B = 3
+
+        input_shape = (B, C_IN, H, W)
+
+        layer = convVariants.CBAM(C_IN, reduction_ratio=3)
+
+        x = randomItem(input_shape)
+        result = layer(x)
+
+        self.assertEqual(
+            getShape(result),
+            input_shape)
+
+        layer1 = Conv2D(
+            32, 
+            3, 
+            activation='relu', 
+            data_format='channels_first')
+
+        layer2 = convVariants.CBAM(32, reduction_ratio=2)
+        self.MNIST_run2(
+            [layer1, layer2], 
+            EPOCHS=5, 
+            repeats=1, 
+            max_instances=60000)
 
 if __name__ == "__main__":
 
