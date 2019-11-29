@@ -77,7 +77,7 @@ class MixConv(layers.Layer):
         self.out_channels = self._split_channels(
             self.channels_out, 
             self.num_groups)
-
+        
         if self.depthwise:
             self.depthwise_layers = []
             self.pointwise_layers = []
@@ -112,6 +112,8 @@ class MixConv(layers.Layer):
                     data_format='channels_first',
                     **self.kwargs)
                 self.layers.append(layer)
+
+        
 
 
     @tf.function
