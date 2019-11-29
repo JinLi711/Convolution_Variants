@@ -15,6 +15,177 @@ Nh: number of heads
 
 import tensorflow as tf
 from tensorflow.keras import layers
+from tensorflow.keras import models 
+
+
+# -------------------------------------------------------------------- #
+# CBAM
+# -------------------------------------------------------------------- #
+
+class ChannelGate(layers.Layer):
+    """Apply Channelwise attention to input.
+
+    Shapes:
+        INPUT: (B, C, H, W)
+        OUPUT: (B, C, H, W)
+
+    Attributes:
+        gate_channels (int): number of channels of input
+        reduction_ratio (int): factor to reduce the channels in FF layer
+        pool_types (list): list of pooling operations
+    """
+
+    def __init__(
+        self,
+        gate_channels,
+        reduction_ratio=16,
+        pool_types=['avg', 'max'],
+        **kwargs):
+
+        super(ChannelGate, self).__init__()
+
+        all_pool_types = {'avg', 'max'}
+        if not set(pool_types).issubset(all_pool_types):
+            raise ValueError('The available pool types are: {}'.format(all_pool_types))
+
+        self.gate_channels = gate_channels
+        self.reduction_ratio = reduction_ratio
+        self.pool_types = pool_types
+        self.kwargs = kwargs
+
+    def build(self, input_shape):
+        hidden_units = self.gate_channels // self.reduction_ratio
+        self.mlp = models.Sequential([
+            layers.Dense(hidden_units, activation='relu'),
+            layers.Dense(self.gate_channels, activation=None)
+        ])
+
+
+    def apply_pooling(self, inputs, pool_type):
+        """Apply pooling then feed into ff.
+
+        Args:
+            inputs (tf.tensor): shape (B, C, H, W)
+
+        Returns:
+            (tf.tensor) shape (B, C)
+        """
+
+        if pool_type == 'avg':
+            pool = tf.math.reduce_mean(inputs, [2, 3])
+        elif pool_type == 'max':
+            pool = tf.math.reduce_max(inputs, [2, 3])
+
+        channel_att = self.mlp(pool)
+        return channel_att
+
+    def call(self, inputs):
+        pools = [self.apply_pooling(inputs, pool_type) \
+            for pool_type in self.pool_types]
+
+        scale = tf.math.sigmoid(tf.math.add_n(pools))[:, :, tf.newaxis, tf.newaxis]
+        return scale * inputs
+
+
+class SpatialGate(layers.Layer):
+    """Apply spatial attention to input.
+
+    Shapes:
+        INPUT: (B, C, H, W)
+        OUPUT: (B, C, H, W)
+
+    Attributes:
+        None
+    """
+
+    def __init__(self, **kwargs):
+        super(SpatialGate, self).__init__()
+
+        self.kwargs = kwargs
+
+    def build(self, input_shapes):
+        self.conv = layers.Conv2D(
+            filters=1, 
+            kernel_size=7,
+            strides=1,
+            padding='same',
+            data_format='channels_first')
+
+        # TODO: we may not want to do batch normalization over the batch dimensions
+        self.bn = layers.BatchNormalization(axis=1)
+
+    def call(self, inputs):
+        pooled_channels = tf.concat(
+            [tf.math.reduce_max(inputs, axis=1, keepdims=True),
+            tf.math.reduce_mean(inputs, axis=1, keepdims=True)],
+            axis=1)
+
+        scale = self.bn(self.conv(pooled_channels))
+        scale = tf.math.sigmoid(scale)
+
+        return inputs * scale
+
+
+class CBAM(layers.Layer):
+    """CBAM layer. 
+
+    NOTE: This should be applied after a convolution operation.
+
+    Shapes:
+        INPUT: (B, C, H, W)
+        OUPUT: (B, C_OUT, H, W)
+
+    Attributes:
+        gate_channels (int): number of channels of input
+        reduction_ratio (int): factor to reduce the channels in FF layer
+        pool_types (list): list of pooling operations
+        spatial (bool): whether to use spatial attention 
+    """
+
+    def __init__(
+        self, 
+        gate_channels, 
+        reduction_ratio=16, 
+        pool_types=['avg', 'max'], 
+        spatial=True, 
+        **kwargs):
+
+        super(CBAM, self).__init__()
+
+        self.gate_channels = gate_channels
+        self.reduction_ratio = reduction_ratio
+        self.pool_types = pool_types
+        self.spatial = spatial
+        self.kwargs = kwargs
+
+    def build(self, input_shapes):
+
+        self.conv = layers.Conv2D(
+            data_format='channels_first',
+            **self.kwargs)
+            
+        self.ChannelGate = ChannelGate(
+            self.gate_channels,
+            self.reduction_ratio,
+            self.pool_types)
+
+        if self.spatial:
+            self.SpatialGate = SpatialGate()
+
+    def call(self, inputs):
+
+        x = self.conv(inputs)
+
+        x = self.ChannelGate(x)
+
+        if self.spatial:
+            x = self.SpatialGate(x)
+
+        return x
+
+# -------------------------------------------------------------------- #
+# Mixed Depthwise
+# -------------------------------------------------------------------- #
 
 
 class MixConv(layers.Layer):
@@ -137,6 +308,10 @@ class MixConv(layers.Layer):
         result = tf.concat(x_outputs, 1)
         return result
 
+
+# -------------------------------------------------------------------- #
+# Augmented Attention
+# -------------------------------------------------------------------- #
 
 class AAConv(layers.Layer):
     """Augmented attention block.
