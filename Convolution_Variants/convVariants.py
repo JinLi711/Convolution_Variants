@@ -133,7 +133,7 @@ class CBAM(layers.Layer):
 
     Shapes:
         INPUT: (B, C, H, W)
-        OUPUT: (B, C, H, W)
+        OUPUT: (B, C_OUT, H, W)
 
     Attributes:
         gate_channels (int): number of channels of input
@@ -159,6 +159,11 @@ class CBAM(layers.Layer):
         self.kwargs = kwargs
 
     def build(self, input_shapes):
+
+        self.conv = layers.Conv2D(
+            data_format='channels_first',
+            **self.kwargs)
+            
         self.ChannelGate = ChannelGate(
             self.gate_channels,
             self.reduction_ratio,
@@ -168,7 +173,10 @@ class CBAM(layers.Layer):
             self.SpatialGate = SpatialGate()
 
     def call(self, inputs):
-        x = self.ChannelGate(inputs)
+
+        x = self.conv(inputs)
+
+        x = self.ChannelGate(x)
 
         if self.spatial:
             x = self.SpatialGate(x)
