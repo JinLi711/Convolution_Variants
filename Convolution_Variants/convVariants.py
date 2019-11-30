@@ -136,7 +136,7 @@ class CBAM(layers.Layer):
         OUPUT: (B, C_OUT, H, W)
 
     Attributes:
-        gate_channels (int): number of channels of input
+        filters (int): number of channels of input
         reduction_ratio (int): factor to reduce the channels in FF layer
         pool_types (list): list of pooling operations
         spatial (bool): whether to use spatial attention 
@@ -144,7 +144,7 @@ class CBAM(layers.Layer):
 
     def __init__(
         self, 
-        gate_channels, 
+        filters, 
         reduction_ratio=16, 
         pool_types=['avg', 'max'], 
         spatial=True, 
@@ -152,7 +152,7 @@ class CBAM(layers.Layer):
 
         super(CBAM, self).__init__()
 
-        self.gate_channels = gate_channels
+        self.filters = filters
         self.reduction_ratio = reduction_ratio
         self.pool_types = pool_types
         self.spatial = spatial
@@ -161,11 +161,12 @@ class CBAM(layers.Layer):
     def build(self, input_shapes):
 
         self.conv = layers.Conv2D(
+            filters=self.filters,
             data_format='channels_first',
             **self.kwargs)
             
         self.ChannelGate = ChannelGate(
-            self.gate_channels,
+            self.filters,
             self.reduction_ratio,
             self.pool_types)
 

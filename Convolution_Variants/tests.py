@@ -302,33 +302,47 @@ class TestCustomConv(unittest.TestCase):
             getShape(result),
             input_shape)
 
-    @unittest.skip('Correct.')
+    # @unittest.skip('Correct.')
     def test_CBAM(self):
         H = 36
         W = 54
         C_IN = 49
+        C_OUT = 50
         B = 3
+        kernel_size = (3,3)
 
         input_shape = (B, C_IN, H, W)
 
-        layer = convVariants.CBAM(C_IN, reduction_ratio=3)
+        layer = convVariants.CBAM(
+            filters=C_OUT,
+            reduction_ratio=3,
+            kernel_size=kernel_size,
+            padding='same')
 
         x = randomItem(input_shape)
         result = layer(x)
 
         self.assertEqual(
             getShape(result),
-            input_shape)
+            (B, C_OUT, H, W))
 
         layer1 = Conv2D(
-            32, 
-            3, 
+            filters=C_OUT, 
+            kernel_size=kernel_size, 
+            data_format='channels_first',
             activation='relu', 
-            data_format='channels_first')
+            padding='same')
 
-        layer2 = convVariants.CBAM(32, reduction_ratio=2)
+        layer2 = convVariants.CBAM(
+            filters=C_OUT,
+            reduction_ratio=2, 
+            kernel_size=kernel_size,
+            activation='relu',
+            padding='same')
+
         self.MNIST_run2(
-            [layer1, layer2], 
+            # [layer1, layer2], 
+            [layer2],
             EPOCHS=5, 
             repeats=1, 
             max_instances=60000)
