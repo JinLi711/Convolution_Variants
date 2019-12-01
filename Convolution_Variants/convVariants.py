@@ -1,6 +1,8 @@
 """State of the art convolution layers.
 
 Includes:
+    ECA Net
+    CBAM
     Augmented Attention Convolution layer.
     Mixed Depthwise Convolution layer.
 
@@ -16,6 +18,70 @@ Nh: number of heads
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import models 
+
+
+# -------------------------------------------------------------------- #
+# ECA
+# -------------------------------------------------------------------- #
+
+class ECAConv(layers.Layer):
+    """ECA Conv layer. 
+
+    NOTE: This should be applied after a convolution operation.
+
+    Shapes:
+        INPUT: (B, C, H, W)
+        OUPUT: (B, C_OUT, H, W)
+
+    Attributes:
+        filters (int): number of channels of input
+        eca_k_size (int): kernel size for the 1D ECA layer
+    """
+
+    def __init__(
+        self, 
+        filters,
+        eca_k_size,
+        **kwargs):
+
+        super(ECAConv, self).__init__()
+
+        self.filters = filters
+        self.eca_k_size = eca_k_size
+        self.kwargs = kwargs
+
+    def build(self, input_shapes):
+
+        self.conv = layers.Conv2D(
+            filters=self.filters,
+            data_format='channels_first',
+            **self.kwargs)
+            
+        self.eca_conv = layers.Conv1D(
+            filters=1, 
+            kernel_size=self.eca_k_size,
+            padding='same', 
+            use_bias=False,
+            data_format='channels_first')
+
+    def call(self, inputs):
+
+        x = self.conv(inputs)
+
+        # (B, 1, C)
+        attn = tf.math.reduce_mean(x, [2, 3])[:, tf.newaxis, :]
+
+        # (B, 1, C)
+        attn = self.eca_conv(attn)
+
+        # (B, C, 1, 1)
+        attn = tf.expand_dims(tf.transpose(attn, [0, 2, 1]), 3)
+
+        # (B, C, 1, 1)
+        attn = tf.math.sigmoid(attn)
+
+        return x * attn
+
 
 
 # -------------------------------------------------------------------- #
@@ -83,8 +149,10 @@ class ChannelGate(layers.Layer):
         pools = [self.apply_pooling(inputs, pool_type) \
             for pool_type in self.pool_types]
 
-        scale = tf.math.sigmoid(tf.math.add_n(pools))[:, :, tf.newaxis, tf.newaxis]
-        return scale * inputs
+        # (B, C, 1, 1)
+        attn = tf.math.sigmoid(tf.math.add_n(pools))[:, :, tf.newaxis, tf.newaxis]
+
+        return attn * inputs
 
 
 class SpatialGate(layers.Layer):

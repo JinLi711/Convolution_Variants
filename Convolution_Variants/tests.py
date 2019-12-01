@@ -302,7 +302,7 @@ class TestCustomConv(unittest.TestCase):
             getShape(result),
             input_shape)
 
-    # @unittest.skip('Correct.')
+    @unittest.skip('Correct.')
     def test_CBAM(self):
         H = 36
         W = 54
@@ -346,6 +346,29 @@ class TestCustomConv(unittest.TestCase):
             EPOCHS=5, 
             repeats=1, 
             max_instances=60000)
+
+    def test_ECA(self):
+        H = 36
+        W = 54
+        C_IN = 49
+        C_OUT = 50
+        B = 3
+        kernel_size = (3,3)
+
+        input_shape = (B, C_IN, H, W)
+
+        layer = convVariants.ECAConv(
+            filters=C_OUT,
+            eca_k_size=3,
+            kernel_size=kernel_size,
+            padding='same')
+
+        x = randomItem(input_shape)
+        result = layer(x)
+
+        self.assertEqual(
+            getShape(result),
+            (B, C_OUT, H, W))
 
 if __name__ == "__main__":
 
