@@ -2,8 +2,10 @@
 This repository replicates various convolution layers from SOTA papers.
 
 This repository currently includes:
-* Attention Augmented Convolution Layer
+* Attention Augmented (AA) Convolution Layer
 * Mixed Depthwise Convolution Layer
+* Efficient Channel Attention (ECA) Layer
+* Convolutional Block Attention Module (CBAM) Layer
 
 
 
@@ -101,4 +103,5 @@ model.fit(x_train, y_train, epochs=5)
 
 * Attention Augmented Convolutional Networks (https://arxiv.org/pdf/1904.09925v4.pdf)
 * Mixed Depthwise Convolution Layer (https://arxiv.org/pdf/1907.09595v2.pdf)
-
+* Efficient Channel Attention Layer (https://arxiv.org/abs/1910.03151)
+* Convolutional Block Attention Module Layer (https://arxiv.org/abs/1807.06521)

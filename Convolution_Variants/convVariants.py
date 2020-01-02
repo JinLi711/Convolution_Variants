@@ -3,8 +3,8 @@
 Includes:
     ECA Net
     CBAM
-    Augmented Attention Convolution layer.
-    Mixed Depthwise Convolution layer.
+    Augmented Attention Convolution layer
+    Mixed Depthwise Convolution layer
 
 NOTE: the format for all layers must be: "NCHW"
 
