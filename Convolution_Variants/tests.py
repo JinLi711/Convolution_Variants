@@ -347,6 +347,7 @@ class TestCustomConv(unittest.TestCase):
             repeats=1, 
             max_instances=60000)
 
+    @unittest.skip('Correct.')
     def test_ECA(self):
         H = 36
         W = 54
@@ -370,20 +371,57 @@ class TestCustomConv(unittest.TestCase):
             getShape(result),
             (B, C_OUT, H, W))
 
+
+    def test_DropBlock(self):
+        H = 36
+        W = H
+        C_IN = 49
+        C_OUT = 50
+        B = 3
+        kernel_size = (3,3)
+
+        input_shape = (B, C_IN, H, W)
+
+        layer = convVariants.DropBlock(0.95, 3)
+
+        x = randomItem(input_shape)
+        result = layer(x, training=True)
+        self.assertEqual(
+            getShape(result),
+            input_shape)
+
+        layer1 = Conv2D(
+            filters=C_OUT, 
+            kernel_size=kernel_size, 
+            data_format='channels_first',
+            activation='relu', 
+            padding='same')
+
+        layer2 = convVariants.DropBlock(0.90, 7)
+
+        self.MNIST_run2(
+            [layer1, layer2], 
+            # [layer1],
+            EPOCHS=5, 
+            repeats=1, 
+            max_instances=60000)
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description='Testing custom convolution layers. Includes: \n \
-            Augmented Attention Convolution \n \
-            Mixed Depthwise Convolution')
+        description='Testing custom convolution layers.')
 
     parser.add_argument(
-        '-E', '--eager', default=False,
-        help='Whether to test AAConv.py with eager execution or not.')
+        '-E', 
+        action='store_true',
+        default=False,
+        help='Whether to test swith eager execution or not.')
 
     args = parser.parse_args()
 
-    if args.eager:
+    if args.E:
+        print('Using Eager')
         tf.config.experimental_run_functions_eagerly(True)
 
     unittest.main()

@@ -35,7 +35,7 @@ For other implementations in:
 ![Mix Conv Diagram](images/MixConv_diagram.png)
 
 For other implementations in:
-* TensorFlow 1.0: [tensorflow](https://github.com/tensorflow/tpu/tree/master/models/official/mnasnet/mixnet)
+* TensorFlow 1.0: [Tensorflow](https://github.com/tensorflow/tpu/tree/master/models/official/mnasnet/mixnet)
 
 ### Notes
 
@@ -43,6 +43,13 @@ For other implementations in:
 
 
 
+## Drop Block Layer
+
+For other implementations in:
+* TensorFlow 1.0: [Tensorflow](https://github.com/tensorflow/tpu/blob/master/models/official/resnet/)
+* Pytorch: [miguelvr](https://github.com/miguelvr/dropblock)
+
+### Notes
 
 
 # Usage

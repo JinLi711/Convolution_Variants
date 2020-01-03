@@ -1,6 +1,7 @@
 """State of the art convolution layers.
 
 Includes:
+    Drop Block
     ECA Net
     CBAM
     Augmented Attention Convolution layer
@@ -18,6 +19,102 @@ Nh: number of heads
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import models 
+
+# -------------------------------------------------------------------- #
+# Helper Functions
+# -------------------------------------------------------------------- #
+
+castFloat32 = lambda x: tf.cast(x, dtype=tf.dtypes.float32)
+
+
+# -------------------------------------------------------------------- #
+# DropBlock
+# -------------------------------------------------------------------- #
+
+class DropBlock(layers.Layer):
+    """Drop Block layer.
+
+    For each channel of the input, randomly dropout an entire block.
+
+    NOTE: This should be applied after a convolution operation.
+    NOTE: Height must equal width.
+
+    Shapes:
+        INPUT: (B, C, H, W)
+        OUPUT: (B, C, H, W)
+
+    Attributes:
+        keep_prob (float): probability of keeping the block
+        dropblock_size (int): size of the drop block
+    """
+
+    def __init__(self, keep_prob, dropblock_size, **kwargs):
+
+        super(DropBlock, self).__init__()
+
+        self.keep_prob = keep_prob
+        self.dropblock_size = dropblock_size
+
+
+    def build(self, input_shapes):
+        if input_shapes[2] != input_shapes[3]:
+            raise ValueError('DropBlock only works when height = width.')
+
+
+    @tf.function
+    def call(self, inputs, training):
+
+        if training:
+            inshape = tf.shape(inputs)
+            width = inshape[3]
+
+            # original dropblock_size is not used because tf.math.minimum produces a
+            # scalar tensor.
+            # dropblock_size = tf.math.minimum(self.dropblock_size, width)
+            dropblock_size = self.dropblock_size
+
+            # aka the gamma parameter
+            seed_drop_rate = (1.0 - self.keep_prob) * castFloat32(width) ** 2 \
+                / castFloat32(dropblock_size) ** 2 / (castFloat32(width - dropblock_size) + 1.0) ** 2
+
+            # force the block to be inside the feature map
+            tf_int = lambda x: tf.cast(x, tf.int32)
+            w_i, h_i = tf.meshgrid(tf.range(width), tf.range(width))
+            valid_block_center = tf.math.logical_and(
+                tf.math.logical_and(w_i >= tf_int(dropblock_size // 2),
+                                w_i < width - (dropblock_size - 1) // 2),
+                tf.math.logical_and(h_i >= tf_int(dropblock_size // 2),
+                                h_i < width - (dropblock_size - 1) // 2))
+
+            valid_block_center = tf.expand_dims(valid_block_center, 0)
+            valid_block_center = tf.expand_dims(valid_block_center, 0)
+
+            randnoise = tf.random.uniform(inshape, dtype=tf.float32)
+            block_pattern = (1 - castFloat32(valid_block_center) \
+                + castFloat32(1 - seed_drop_rate) + randnoise) >= 1
+            block_pattern = castFloat32(block_pattern)
+            
+            if dropblock_size == width:
+                block_pattern = tf.math.reduce_min(
+                    block_pattern,
+                    axis=[2, 3],
+                    keepdims=True)
+
+            else:
+                ksize = [1, 1, dropblock_size, dropblock_size]
+                block_pattern = -tf.nn.max_pool(
+                    -block_pattern, 
+                    ksize=ksize, 
+                    strides=[1, 1, 1, 1], 
+                    padding='SAME',
+                    data_format='NCHW')
+
+            percent_ones = castFloat32(tf.reduce_sum(block_pattern)) \
+                / castFloat32(tf.size(block_pattern))
+
+            inputs = inputs / castFloat32(percent_ones) * castFloat32(block_pattern)
+        
+        return inputs 
 
 
 # -------------------------------------------------------------------- #
