@@ -8,6 +8,7 @@ Includes:
     Mixed Depthwise Convolution layer
 
 NOTE: the format for all layers must be: "NCHW"
+NOTE: only ECA and CBAM can use multiple groups.
 
 B: batch size
 C: channels
@@ -147,6 +148,7 @@ class ECAConv(layers.Layer):
         self, 
         filters,
         eca_k_size,
+        groups=1,
         **kwargs):
 
         super(ECAConv, self).__init__()
@@ -154,13 +156,21 @@ class ECAConv(layers.Layer):
         self.filters = filters
         self.eca_k_size = eca_k_size
         self.kwargs = kwargs
+        self.groups = groups
 
     def build(self, input_shapes):
 
-        self.conv = layers.Conv2D(
-            filters=self.filters,
-            data_format='channels_first',
-            **self.kwargs)
+        if self.groups == 1:
+            self.conv = layers.Conv2D(
+                filters=self.filters,
+                data_format='channels_first',
+                **self.kwargs)
+        else:
+            self.conv = GroupConv2D(
+                filters=self.filters,
+                data_format='channels_first',
+                groups=self.groups,
+                **self.kwargs)
             
         self.eca_conv = layers.Conv1D(
             filters=1, 
@@ -321,6 +331,7 @@ class CBAM(layers.Layer):
         reduction_ratio=16, 
         pool_types=['avg', 'max'], 
         spatial=True, 
+        groups=1,
         **kwargs):
 
         super(CBAM, self).__init__()
@@ -330,13 +341,22 @@ class CBAM(layers.Layer):
         self.pool_types = pool_types
         self.spatial = spatial
         self.kwargs = kwargs
+        self.groups = groups
 
     def build(self, input_shapes):
 
-        self.conv = layers.Conv2D(
-            filters=self.filters,
-            data_format='channels_first',
-            **self.kwargs)
+        if self.groups == 1:
+            self.conv = layers.Conv2D(
+                filters=self.filters,
+                data_format='channels_first',
+                **self.kwargs)
+
+        else:
+            self.conv = GroupConv2D(
+                filters=self.filters,
+                data_format='channels_first',
+                groups=self.groups,
+                **self.kwargs)
             
         self.ChannelGate = ChannelGate(
             self.filters,
