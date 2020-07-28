@@ -2,7 +2,7 @@
 This repository replicates various convolution layers from SOTA papers.
 
 This repository currently includes:
-* Attention Augmented (AA) Convolution Layer
+* [Attention Augmented (AA) Convolution Layer](#Attention Augmented Convolution Layer)
 * Mixed Depthwise Convolution Layer
 * Drop Block
 * Efficient Channel Attention (ECA) Layer
