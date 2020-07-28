@@ -58,7 +58,7 @@ For other implementations in:
 
 ## Efficient Channel Attention Layer
 
-![ECA](images/ECA.png)
+![ECA](images/ECA.png){ width=50% }
 
 
 
