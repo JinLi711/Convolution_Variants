@@ -1,6 +1,9 @@
-"""Tests Augmented Attention Layer.
+"""Tests the different convolution layers.
 
 Mainly tests for shape correctness.
+
+To run tests:
+    `python tests.py`
 """
 
 import unittest
@@ -13,6 +16,7 @@ os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Flatten, Conv2D
 from tensorflow.keras import Model
+from tensorflow.keras import datasets
 import numpy as np
 
 import convVariants
@@ -20,9 +24,9 @@ import convVariants
 randomItem = np.random.random_sample
 getShape = lambda input_: tuple(input_.shape)
 
-class MNISTModel(Model):
+class RegularModel(Model):
     def __init__(self, conv_layer):
-        super(MNISTModel, self).__init__()
+        super(RegularModel, self).__init__()
         self.conv = conv_layer
         self.flatten = Flatten()
         self.d1 = Dense(128, activation='relu')
@@ -37,12 +41,22 @@ class MNISTModel(Model):
 # @unittest.skip('Correct')
 class TestCustomConv(unittest.TestCase):
 
-    def MNIST_load_data(self, max_instances, repeats):
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    def load_data(self, max_instances, repeats, dataset='mnist'):
+
+        channels_first = lambda x: np.transpose(x, [0, 3, 1, 2])
+
+        if dataset == 'mnist':
+            (x_train, y_train), (x_test, y_test) = datasets.mnist.load_data()
+            x_train = x_train[:, tf.newaxis, :, :]
+            x_test = x_test[:, tf.newaxis, :, :]
+        elif dataset == 'cifar10':
+            (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
+            x_train = channels_first(x_train)
+            x_test = channels_first(x_test)
+        else:
+            raise ValueError('Not a correct dataset.')
 
         x_train, x_test = x_train / 255.0, x_test / 255.0
-        x_train = x_train[:, tf.newaxis, :, :]
-        x_test = x_test[:, tf.newaxis, :, :]
 
         x_train = x_train[:max_instances]
         y_train = y_train[:max_instances]
@@ -55,7 +69,7 @@ class TestCustomConv(unittest.TestCase):
         return x_train, y_train, x_test, y_test
 
 
-    def MNIST_run(
+    def run(
         self, 
         layer, 
         max_instances=1000, 
@@ -65,7 +79,7 @@ class TestCustomConv(unittest.TestCase):
         """This is just to check if the layer is backpropable.
         """
     
-        x_train, y_train, x_test, y_test = self.MNIST_load_data(
+        x_train, y_train, x_test, y_test = self.load_data(
             max_instances,
             repeats)
 
@@ -75,7 +89,7 @@ class TestCustomConv(unittest.TestCase):
         test_ds = tf.data.Dataset.from_tensor_slices(
             (x_test, y_test)).batch(32)
 
-        model = MNISTModel(layer)
+        model = RegularModel(layer)
 
         loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
         optimizer = tf.keras.optimizers.Adam()
@@ -130,10 +144,10 @@ class TestCustomConv(unittest.TestCase):
             test_accuracy.reset_states()
 
     
-    def MNIST_run2(self, layers, max_instances=1000, EPOCHS=2, repeats=1):
+    def run2(self, layers, max_instances=1000, EPOCHS=2, repeats=1):
         """This doesn't work if output shapes are undetermined. """
 
-        x_train, y_train, x_test, y_test = self.MNIST_load_data(
+        x_train, y_train, x_test, y_test = self.load_data(
             max_instances,
             repeats)
 
@@ -214,7 +228,7 @@ class TestCustomConv(unittest.TestCase):
             depth_v=8, 
             num_heads=4)
 
-        self.MNIST_run(layer)
+        self.run(layer)
 
            
     @unittest.skip('Correct.')
@@ -256,7 +270,7 @@ class TestCustomConv(unittest.TestCase):
                 depthwise=depthwise,
                 activation='relu')
 
-            self.MNIST_run2(
+            self.run2(
                 [layer], 
                 EPOCHS=5, 
                 repeats=2, 
@@ -284,6 +298,7 @@ class TestCustomConv(unittest.TestCase):
             getShape(result),
             input_shape)
 
+
     @unittest.skip('Correct.')
     def test_SpatialGate(self):
         H = 36
@@ -301,6 +316,7 @@ class TestCustomConv(unittest.TestCase):
         self.assertEqual(
             getShape(result),
             input_shape)
+
 
     @unittest.skip('Correct.')
     def test_CBAM(self):
@@ -340,12 +356,13 @@ class TestCustomConv(unittest.TestCase):
             activation='relu',
             padding='same')
 
-        self.MNIST_run2(
+        self.run2(
             # [layer1, layer2], 
             [layer2],
             EPOCHS=5, 
             repeats=1, 
             max_instances=60000)
+
 
     @unittest.skip('Correct.')
     def test_ECA(self):
@@ -372,6 +389,7 @@ class TestCustomConv(unittest.TestCase):
             (B, C_OUT, H, W))
 
 
+    @unittest.skip('Correct.')
     def test_DropBlock(self):
         H = 36
         W = H
@@ -396,15 +414,43 @@ class TestCustomConv(unittest.TestCase):
             data_format='channels_first',
             activation='relu', 
             padding='same')
-
+        
         layer2 = convVariants.DropBlock(0.90, 7)
 
-        self.MNIST_run2(
+        self.run2(
             [layer1, layer2], 
             # [layer1],
             EPOCHS=5, 
             repeats=1, 
             max_instances=60000)
+
+
+    @unittest.skip('Correct.')
+    def test_GroupConv(self):
+        H = 36
+        W = 54
+        C_IN = 48
+        C_OUT = 60
+        B = 3
+        kernel_size = (3,3)
+        N_GROUPS = 6
+
+        input_shape = (B, C_IN, H, W)
+
+        layer = convVariants.GroupConv2D(
+            filters=C_OUT, 
+            kernel_size=kernel_size, 
+            groups=N_GROUPS, 
+            data_format='channels_first',
+            padding="same",
+            activation='relu')
+
+        x = randomItem(input_shape)
+        result = layer(x)
+
+        self.assertEqual(
+            getShape(result),
+            (B, C_OUT, H, W))
 
 
 if __name__ == "__main__":
