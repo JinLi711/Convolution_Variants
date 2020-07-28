@@ -4,6 +4,7 @@ This repository replicates various convolution layers from SOTA papers.
 This repository currently includes:
 * Attention Augmented (AA) Convolution Layer
 * Mixed Depthwise Convolution Layer
+* Drop Block
 * Efficient Channel Attention (ECA) Layer
 * Convolutional Block Attention Module (CBAM) Layer
 
@@ -14,6 +15,8 @@ This repository currently includes:
 ## Attention Augmented Convolution Layer
 
 ![AA Convolution Diagram](images/AA_conv_diagram.png)
+
+Paper: [Attention Augmented Convolutional Networks](https://arxiv.org/abs/1904.09925)
 
 For other implementations in:
 * Pytorch: [leaderj1001](https://github.com/leaderj1001/Attention-Augmented-Conv2d)
