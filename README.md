@@ -58,9 +58,10 @@ For other implementations in:
 
 ## Efficient Channel Attention Layer
 
-![ECA](images/ECA.png){ width=50% }
+![ECA](images/ECA.png)
 
-
+For other implementations in:
+* Pytorch: [BangguWu](https://github.com/BangguWu/ECANet)
 
 
 
@@ -68,7 +69,8 @@ For other implementations in:
 
 ![CBAM](images/CBAM.png)
 
-
+For other implementations in:
+* Pytorch: [Jongchan](https://github.com/Jongchan/attention-module)
 
 
 
