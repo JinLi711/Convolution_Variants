@@ -3,8 +3,8 @@ This repository replicates various convolution layers from SOTA papers.
 
 This repository currently includes:
 * [Attention Augmented (AA) Convolution Layer](#Attention-Augmented-Convolution-Layer)
-* Mixed Depthwise Convolution Layer
-* Drop Block
+* [Mixed Depthwise Convolution Layer](#Mixed-Depthwise-Convolution-Layer)
+* [Drop Block](#Drop-Block)
 * Efficient Channel Attention (ECA) Layer
 * Convolutional Block Attention Module (CBAM) Layer
 
@@ -15,8 +15,6 @@ This repository currently includes:
 ## Attention Augmented Convolution Layer
 
 ![AA Convolution Diagram](images/AA_conv_diagram.png)
-
-Paper: [Attention Augmented Convolutional Networks](https://arxiv.org/abs/1904.09925)
 
 For other implementations in:
 * Pytorch: [leaderj1001](https://github.com/leaderj1001/Attention-Augmented-Conv2d)
@@ -46,7 +44,7 @@ For other implementations in:
 
 
 
-## Drop Block Layer
+## Drop Block
 
 For other implementations in:
 * TensorFlow 1.0: [Tensorflow](https://github.com/tensorflow/tpu/blob/master/models/official/resnet/)
@@ -57,7 +55,7 @@ For other implementations in:
 
 # Usage
 
-To use these layers:
+Here is an example of how to use this layer:
 
 ```
 import tensorflow as tf
@@ -93,7 +91,7 @@ model.fit(x_train, y_train, epochs=5)
 
 # General Notes:
 
-* This layer is only tested to work for input format: NCHW. Existing implementations (see Acknowledgements) using format NHWC.
+* These layers are only tested to work for input format: NCHW. Existing implementations (see Acknowledgements) using format NHWC.
 
 * Test cases are located [here](https://github.com/JinLi711/Convolution_Variants/blob/master/Convolution_Variants/tests.py). 
 
