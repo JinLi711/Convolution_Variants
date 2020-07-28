@@ -77,11 +77,11 @@ For other implementations in:
 
 # Usage
 
-Here is an example of how to use this layer:
+Here is an example of how to use one of the layers:
 
 ```
 import tensorflow as tf
-from AAConv import AAConv
+from convVariants import AAConv
 
 aaConv = AAConv(
     channels_out=32,
@@ -91,7 +91,7 @@ aaConv = AAConv(
     num_heads=4)
 ```
 
-The layer can be treated like any other `tf.keras layer`.
+The layer can be treated like any other `tf.keras.layers` class.
 
 ```
 model = tf.keras.models.Sequential([
@@ -110,20 +110,25 @@ model.compile(
 model.fit(x_train, y_train, epochs=5)
 ```
 
+## Tests 
 
-# General Notes:
+Test cases are located [here](Convolution_Variants/tests.py). 
 
-* These layers are only tested to work for input format: NCHW. Existing implementations (see Acknowledgements) using format NHWC.
+To run tests:
 
-* Test cases are located [here](https://github.com/JinLi711/Convolution_Variants/blob/master/Convolution_Variants/tests.py). 
+```
+cd Convolution_Variants
+python tests.py
+```
 
-
-
-
-
-# Requirements
+## Requirements
 
 * tensorflow 2.0.0 with GPU
+
+
+## Caveats
+
+* These layers are only tested to work for input format: NCHW.
 
 
 
