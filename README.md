@@ -5,8 +5,8 @@ This repository currently includes:
 * [Attention Augmented (AA) Convolution Layer](#Attention-Augmented-Convolution-Layer)
 * [Mixed Depthwise Convolution Layer](#Mixed-Depthwise-Convolution-Layer)
 * [Drop Block](#Drop-Block)
-* Efficient Channel Attention (ECA) Layer
-* Convolutional Block Attention Module (CBAM) Layer
+* [Efficient Channel Attention (ECA) Layer](#Efficient-Channel-Attention-Layer)
+* [Convolutional Block Attention Module (CBAM) Layer](#Convolutional-Block-Attention-Module-Layer)
 
 
 
@@ -46,11 +46,31 @@ For other implementations in:
 
 ## Drop Block
 
+![Drop Block](images/drop_block.png)
+
 For other implementations in:
 * TensorFlow 1.0: [Tensorflow](https://github.com/tensorflow/tpu/blob/master/models/official/resnet/)
 * Pytorch: [miguelvr](https://github.com/miguelvr/dropblock)
 
-### Notes
+
+
+
+
+## Efficient Channel Attention Layer
+
+![ECA](images/ECA.png)
+
+
+
+
+
+## Convolutional Block Attention Module Layer
+
+![CBAM](images/CBAM.png)
+
+
+
+
 
 
 # Usage
@@ -109,7 +129,9 @@ model.fit(x_train, y_train, epochs=5)
 
 # Acknowledgements
 
-* Attention Augmented Convolutional Networks (https://arxiv.org/pdf/1904.09925v4.pdf)
-* Mixed Depthwise Convolution Layer (https://arxiv.org/pdf/1907.09595v2.pdf)
-* Efficient Channel Attention Layer (https://arxiv.org/abs/1910.03151)
-* Convolutional Block Attention Module Layer (https://arxiv.org/abs/1807.06521)
+Links to the original papers:
+* [Attention Augmented Convolutional Networks](https://arxiv.org/pdf/1904.09925v4.pdf)
+* [Mixed Depthwise Convolution Layer](https://arxiv.org/pdf/1907.09595v2.pdf)
+* [Drop Block Layer](https://papers.nips.cc/paper/8271-dropblock-a-regularization-method-for-convolutional-networks.pdf)
+* [Efficient Channel Attention Layer](https://arxiv.org/abs/1910.03151)
+* [Convolutional Block Attention Module Layer](https://arxiv.org/abs/1807.06521)
