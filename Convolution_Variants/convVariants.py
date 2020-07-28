@@ -10,6 +10,7 @@ Includes:
 NOTE: the format for all layers must be: "NCHW"
 NOTE: only ECA and CBAM can use multiple groups.
 
+Extra notation:
 B: batch size
 C: channels
 H: height
@@ -42,6 +43,8 @@ castFloat32 = lambda x: tf.cast(x, dtype=tf.dtypes.float32)
 
 class DropBlock(layers.Layer):
     """Drop Block layer.
+
+    Paper: https://papers.nips.cc/paper/8271-dropblock-a-regularization-method-for-convolutional-networks.pdf
 
     For each channel of the input, randomly dropout an entire block.
 
@@ -137,7 +140,7 @@ class ECAConv(layers.Layer):
 
     Shapes:
         INPUT: (B, C, H, W)
-        OUPUT: (B, C_OUT, H, W)
+        OUPUT: (B, C_2, H, W)
 
     Attributes:
         filters (int): number of channels of input
@@ -278,12 +281,14 @@ class SpatialGate(layers.Layer):
         OUPUT: (B, C, H, W)
 
     Attributes:
-        None
+        batchNorm (bool): whether we perform a batch normalization after 
+            max and average pooling
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, batchNorm, **kwargs):
         super(SpatialGate, self).__init__()
 
+        self.batchNorm = batchNorm
         self.kwargs = kwargs
 
     def build(self, input_shapes):
@@ -294,8 +299,8 @@ class SpatialGate(layers.Layer):
             padding='same',
             data_format='channels_first')
 
-        # TODO: we may not want to do batch normalization over the batch dimensions
-        self.bn = layers.BatchNormalization(axis=1)
+        if self.batchNorm:
+            self.bn = layers.BatchNormalization(axis=1)
 
     def call(self, inputs):
         pooled_channels = tf.concat(
@@ -303,7 +308,10 @@ class SpatialGate(layers.Layer):
             tf.math.reduce_mean(inputs, axis=1, keepdims=True)],
             axis=1)
 
-        scale = self.bn(self.conv(pooled_channels))
+        scale = self.conv(pooled_channels)
+        if self.batchNorm:
+            scale = self.bn(scale)
+
         scale = tf.math.sigmoid(scale)
 
         return inputs * scale
@@ -316,7 +324,7 @@ class CBAM(layers.Layer):
 
     Shapes:
         INPUT: (B, C, H, W)
-        OUPUT: (B, C_OUT, H, W)
+        OUPUT: (B, C_2, H, W)
 
     Attributes:
         filters (int): number of channels of input
@@ -331,6 +339,7 @@ class CBAM(layers.Layer):
         reduction_ratio=16, 
         pool_types=['avg', 'max'], 
         spatial=True, 
+        batchNorm=False,
         groups=1,
         **kwargs):
 
@@ -341,6 +350,7 @@ class CBAM(layers.Layer):
         self.pool_types = pool_types
         self.spatial = spatial
         self.kwargs = kwargs
+        self.batchNorm = batchNorm
         self.groups = groups
 
     def build(self, input_shapes):
@@ -364,7 +374,7 @@ class CBAM(layers.Layer):
             self.pool_types)
 
         if self.spatial:
-            self.SpatialGate = SpatialGate()
+            self.SpatialGate = SpatialGate(self.batchNorm)
 
     def call(self, inputs):
 
@@ -386,8 +396,8 @@ class MixConv(layers.Layer):
     """MixConv, a convolution layer with different convolution kernel sizes.
 
     Shapes:
-        INPUT: (B, C_IN, H, W)
-        OUPUT: (B, C_OUT, H, W)
+        INPUT: (B, C, H, W)
+        OUPUT: (B, C_2, H, W)
 
     Attributes:
         channels_out (int): total number of output channels
@@ -511,8 +521,8 @@ class AAConv(layers.Layer):
     """Augmented attention block.
 
     Shapes:
-        INPUT: (B, C_IN, H, W)
-        OUPUT: (B, C_OUT, H, W)
+        INPUT: (B, C, H, W)
+        OUPUT: (B, C_2, H, W)
 
     NOTE: relative positional encoding has not yet been implemented
 
@@ -752,7 +762,6 @@ class AAConv(layers.Layer):
 
 
 class GroupConvBase(tf.keras.layers.Layer):
-
     def __init__(
         self, 
         rank, 
@@ -885,6 +894,9 @@ class GroupConv2D(GroupConvBase):
 
     Code is taken from here: https://github.com/tensorflow/tensorflow/issues/34024
     Also, check out this pull request: https://github.com/tensorflow/tensorflow/pull/25818
+
+    Attributes:
+        groups (int): number of groups to split the convolution layer.
     """
 
     def __init__(
